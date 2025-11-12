@@ -26,7 +26,7 @@ This application supports the following cryptographic methods:
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone <https://github.com/omarkapil/crypto-app.git>
 cd crypto-app
 ```
 
@@ -82,7 +82,4 @@ crypto-app/
 - Each algorithm generates its own keys/parameters automatically
 - Keys and initialization vectors (IVs) are displayed in base64 format for easy sharing
 
-## License
-
-This project is open source and available for educational purposes.
 
