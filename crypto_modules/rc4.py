@@ -1,66 +1,91 @@
-# RC4 (Rivest Cipher 4)
-# Stream cipher algorithm
 
-import os
 import base64
 
-def KSA(key: bytes) -> list:
-    """Key Scheduling Algorithm - Initialize the S array."""
-    key_length = len(key)
+# === KSA (Key Scheduling Algorithm) - ===
+def ksa(key_bytes):
     S = list(range(256))
     j = 0
     for i in range(256):
-        j = (j + S[i] + key[i % key_length]) % 256
+        j = (j + S[i] + key_bytes[i % len(key_bytes)]) % 256
         S[i], S[j] = S[j], S[i]
     return S
 
-def PRGA(S: list, n: int) -> list:
-    """Pseudo-Random Generation Algorithm - Generate keystream."""
-    i = 0
-    j = 0
-    keystream = []
-    for _ in range(n):
-        i = (i + 1) % 256
-        j = (j + S[i]) % 256
-        S[i], S[j] = S[j], S[i]
-        K = S[(S[i] + S[j]) % 256]
-        keystream.append(K)
-    return keystream
+# === LCG for Keystream Generation  ===
+def lcg_keystream(length, seed, a=1103515245, c=12345, m=256):
+    stream = bytearray()
+    x = seed
+    for _ in range(length):
+        x = (a * x + c) % m
+        stream.append(x)
+    return bytes(stream)
 
-def rc4_encrypt(plaintext: bytes, key: bytes) -> bytes:
-    """Encrypt plaintext using RC4."""
-    S = KSA(key)
-    keystream = PRGA(S, len(plaintext))
-    ciphertext = bytes([plaintext[i] ^ keystream[i] for i in range(len(plaintext))])
-    return ciphertext
+# === XOR Encryption / Decryption ===
+def xor_cipher(data_bytes, keystream):
+    return bytes(b ^ k for b, k in zip(data_bytes, keystream))
 
-def rc4_decrypt(ciphertext: bytes, key: bytes) -> bytes:
-    """Decrypt ciphertext using RC4 (same as encryption)."""
-    return rc4_encrypt(ciphertext, key)
+# === Full RC4-LCG Process ===
+def rc4_lcg_process(data_bytes, key_str):
+    key_bytes = [ord(c) for c in key_str]
+    S = ksa(key_bytes)
+    seed = sum(S) % 256
+    keystream = lcg_keystream(len(data_bytes), seed)
+    return xor_cipher(data_bytes, keystream)
 
-def process_text(text: str) -> str:
-    """
-    Process text using RC4 encryption for Flask app.
-    Encrypts the text and returns base64 encoded ciphertext with key.
-    """
-    if not text:
-        return "ERROR: Input text is empty."
-    
-    try:
-        # Generate a random 16-byte key
-        key = os.urandom(16)
-        
-        # Encrypt
-        plaintext_bytes = text.encode('utf-8')
-        ciphertext = rc4_encrypt(plaintext_bytes, key)
-        
-        # Encode in base64 for display
-        ciphertext_b64 = base64.b64encode(ciphertext).decode('utf-8')
-        key_b64 = base64.b64encode(key).decode('utf-8')
-        
-        result = f"Ciphertext (base64): {ciphertext_b64}\n\nKey (base64): {key_b64}"
-        return result
-        
-    except Exception as e:
-        return f"ERROR: Encryption failed: {str(e)}"
+# === Main Interactive Menu ===
+def main():
+    print("RC4  ")
+    print("Choose an option:")
+    print("  1 - Encrypt")
+    print("  2 - Decrypt")
+    print()
+    choice = input("Enter 1 or 2: ").strip()
 
+    if choice not in ['1', '2']:
+        print("Invalid choice.")
+        return
+
+    key = input("\nEnter key: ").strip()
+    if not key:
+        print("Key cannot be empty.")
+        return
+
+    if choice == '1':
+        plaintext = input("Enter plaintext: ").strip()
+        if not plaintext:
+            print("Plaintext cannot be empty.")
+            return
+
+        data_bytes = plaintext.encode('utf-8')
+        ciphertext_bytes = rc4_lcg_process(data_bytes, key)
+        ciphertext_b64 = base64.b64encode(ciphertext_bytes).decode('ascii')
+
+        print("\n--- Result ---")
+        print(f"Plaintext : {plaintext}")
+        print(f"Key       : {key}")
+        print(f"Ciphertext: {ciphertext_b64}")
+
+    else:  # Decrypt
+        cipher_b64 = input("\nEnter ciphertext (Base64): ").strip()
+        if not cipher_b64:
+            print("Ciphertext cannot be empty.")
+            return
+
+        try:
+            ciphertext_bytes = base64.b64decode(cipher_b64)
+        except Exception:
+            print("Invalid Base64.")
+            return
+
+        decrypted_bytes = rc4_lcg_process(ciphertext_bytes, key)
+        try:
+            decrypted_text = decrypted_bytes.decode('utf-8')
+        except UnicodeDecodeError:
+            decrypted_text = f"[Binary: {decrypted_bytes.hex()}]"
+
+        print("\n--- Result ---")
+        print(f"Ciphertext: {cipher_b64}")
+        print(f"Key       : {key}")
+        print(f"Plaintext : {decrypted_text}")
+
+if __name__ == "__main__":
+    main()
