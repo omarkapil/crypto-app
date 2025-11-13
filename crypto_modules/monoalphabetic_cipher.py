@@ -1,64 +1,43 @@
-# Monoalphabetic Cipher (Substitution Cipher)
-# Simple substitution cipher where each letter is replaced with another letter
 
-import random
-import string
+def lcg(seed, n=26):
+    a, c, m = 1664525, 1013904223, 2**32
+    x = seed
+    nums = []
+    for _ in range(n):
+        x = (a * x + c) % m
+        nums.append(x)
+    return nums
 
-def generate_key():
-    """Generate a random monoalphabetic substitution key."""
-    letters = list(string.ascii_uppercase)
-    shuffled = letters.copy()
-    random.shuffle(shuffled)
-    return dict(zip(letters, shuffled))
+def make_key(seed):
+    alpha = "abcdefghijklmnopqrstuvwxyz"
+    indices = sorted(range(26), key=lambda i: lcg(seed)[i])
+    return ''.join(alpha[i] for i in indices)
 
-def encrypt(text: str, key: dict) -> str:
-    """Encrypt text using monoalphabetic cipher."""
-    result = []
-    for char in text.upper():
-        if char in key:
-            result.append(key[char])
-        elif char.isalpha():
-            # Handle lowercase by converting
-            result.append(key[char.upper()].lower())
-        else:
-            result.append(char)
-    return ''.join(result)
+def encrypt(text, key):
+    alpha = "abcdefghijklmnopqrstuvwxyz"
+    table = str.maketrans(alpha, key)
+    return text.lower().translate(table)
 
-def decrypt(text: str, key: dict) -> str:
-    """Decrypt text using monoalphabetic cipher."""
-    reverse_key = {v: k for k, v in key.items()}
-    result = []
-    for char in text:
-        if char.upper() in reverse_key:
-            if char.isupper():
-                result.append(reverse_key[char])
-            else:
-                result.append(reverse_key[char.upper()].lower())
-        else:
-            result.append(char)
-    return ''.join(result)
+def decrypt(text, key):
+    alpha = "abcdefghijklmnopqrstuvwxyz"
+    table = str.maketrans(key, alpha)
+    return text.lower().translate(table)
 
-def process_text(text: str) -> str:
-    """
-    Process text using Monoalphabetic Cipher for Flask app.
-    Encrypts the text and returns the ciphertext with the key.
-    """
-    if not text:
-        return "ERROR: Input text is empty."
-    
-    try:
-        # Generate a random key
-        key = generate_key()
-        
-        # Encrypt the text
-        ciphertext = encrypt(text, key)
-        
-        # Format key for display
-        key_str = " ".join([f"{k}->{v}" for k, v in sorted(key.items())])
-        
-        result = f"Ciphertext: {ciphertext}\n\nKey (A->Z mapping):\n{key_str}"
-        return result
-        
-    except Exception as e:
-        return f"ERROR: Encryption failed: {str(e)}"
+# --- Main ---
+print("1) Encrypt\n2) Decrypt")
+choice = input(">> ").strip()
 
+if choice not in ("1", "2"):
+    print("Invalid choice!")
+    exit()
+
+seed = int(input("Enter seed (int): "))
+key = make_key(seed)
+print("Key:", key)
+
+text = input("Enter text: ")
+
+if choice == "1":
+    print("Encrypted:", encrypt(text, key))
+else:
+    print("Decrypted:", decrypt(text, key))
