@@ -1,68 +1,75 @@
-# Cipher Block Chaining (CBC) Mode
-# AES-CBC encryption
+# Simple XOR-based block cipher for demonstration
+def simple_block_encrypt(block, key):
+    return bytes([b ^ k for b, k in zip(block, key)])
 
-import base64
+def simple_block_decrypt(block, key):
+    return bytes([b ^ k for b, k in zip(block, key)])
 
-try:
-    from Crypto.Cipher import AES
-    from Crypto.Random import get_random_bytes
-    from Crypto.Util.Padding import pad, unpad
-    CRYPTO_AVAILABLE = True
-except ImportError:
-    CRYPTO_AVAILABLE = False
-    def get_random_bytes(size):
-        raise ImportError("pycryptodome is not installed. Please run: pip install pycryptodome")
-    AES = None  # type: ignore
+# LCG (Linear Congruential Generator)
+def lcg(seed, a, c, m, n):
+    numbers = []
+    x = seed
+    for _ in range(n):
+        x = (a * x + c) % m
+        numbers.append(x)
+    return numbers
 
-def b64encode(b: bytes) -> str:
-    """Convert bytes to base64 string."""
-    return base64.b64encode(b).decode('utf-8')
+# Convert LCG numbers to bytes for IV
+def lcg_iv(seed, size=8):
+    # Parameters for LCG
+    a = 1664525
+    c = 1013904223
+    m = 2**32
+    numbers = lcg(seed, a, c, m, size)
+    iv = bytes([n % 256 for n in numbers])
+    return iv
 
-def cbc_encrypt(key: bytes, iv: bytes, plaintext: bytes) -> bytes:
-    """Encrypt plaintext using AES-CBC mode."""
-    if not CRYPTO_AVAILABLE:
-        raise ImportError("pycryptodome is not installed. Please run: pip install pycryptodome")
-    cipher = AES.new(key, AES.MODE_CBC, iv=iv)
-    # Pad the plaintext to be multiple of block size
-    padded_plaintext = pad(plaintext, AES.block_size)
-    ciphertext = cipher.encrypt(padded_plaintext)
+# CBC Encryption
+def cbc_encrypt(plaintext, key, iv):
+    block_size = len(key)
+    ciphertext = b''
+    
+    # Pad plaintext to match block size
+    padding_len = block_size - (len(plaintext) % block_size)
+    plaintext += bytes([padding_len] * padding_len)
+    
+    prev_block = iv
+    for i in range(0, len(plaintext), block_size):
+        block = plaintext[i:i+block_size]
+        block_to_encrypt = bytes([b ^ pb for b, pb in zip(block, prev_block)])
+        cipher_block = simple_block_encrypt(block_to_encrypt, key)
+        ciphertext += cipher_block
+        prev_block = cipher_block
+    
     return ciphertext
 
-def cbc_decrypt(key: bytes, iv: bytes, ciphertext: bytes) -> bytes:
-    """Decrypt ciphertext using AES-CBC mode."""
-    if not CRYPTO_AVAILABLE:
-        raise ImportError("pycryptodome is not installed. Please run: pip install pycryptodome")
-    cipher = AES.new(key, AES.MODE_CBC, iv=iv)
-    padded_plaintext = cipher.decrypt(ciphertext)
-    plaintext = unpad(padded_plaintext, AES.block_size)
-    return plaintext
-
-def process_text(text: str) -> str:
-    """
-    Process text using AES-CBC encryption for Flask app.
-    Encrypts the text and returns base64 encoded ciphertext with key and IV.
-    """
-    if not CRYPTO_AVAILABLE:
-        return "ERROR: pycryptodome library is not installed. Please install it using: pip install pycryptodome"
+# CBC Decryption
+def cbc_decrypt(ciphertext, key, iv):
+    block_size = len(key)
+    plaintext = b''
+    prev_block = iv
     
-    if not text:
-        return "ERROR: Input text is empty."
+    for i in range(0, len(ciphertext), block_size):
+        cipher_block = ciphertext[i:i+block_size]
+        decrypted_block = simple_block_decrypt(cipher_block, key)
+        plain_block = bytes([b ^ pb for b, pb in zip(decrypted_block, prev_block)])
+        plaintext += plain_block
+        prev_block = cipher_block
     
-    try:
-        # Generate random key and IV for encryption
-        key = get_random_bytes(32)  # AES-256
-        iv = get_random_bytes(16)   # 16 bytes for AES block size
-        
-        # Encrypt the plaintext
-        plaintext_bytes = text.encode('utf-8')
-        ciphertext = cbc_encrypt(key, iv, plaintext_bytes)
-        
-        # Return formatted result with ciphertext, key, and IV (all in base64)
-        result = f"Ciphertext: {b64encode(ciphertext)}\nKey: {b64encode(key)}\nIV: {b64encode(iv)}"
-        return result
-        
-    except ImportError as e:
-        return f"ERROR: {str(e)}"
-    except Exception as e:
-        return f"ERROR: Encryption failed: {str(e)}"
+    padding_len = plaintext[-1]
+    return plaintext[:-padding_len]
 
+# Example usage
+if _name_ == "_main_":
+    key = b'12345678'  # 8-byte key
+    seed = 42          # Seed for LCG
+    iv = lcg_iv(seed, size=len(key))  # Generate IV using LCG
+    
+    message = input("Enter message: ").encode()
+
+    encrypted = cbc_encrypt(message, key, iv)
+    decrypted = cbc_decrypt(encrypted, key, iv)
+
+    print("LCG-generated IV:", iv.hex())
+    print("Encrypted (hex):", encrypted.hex())
+    print("Decrypted:", decrypted.decode())
