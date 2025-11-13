@@ -1,0 +1,88 @@
+def leftRotate(value, count):
+    return ((value << count) | (value >> (32 - count))) & 0xFFFFFFFF
+
+def sha1(input):
+    # fixed constants defined by the algorithm
+    h0 = 0x67452301
+    h1 = 0xEFCDAB89
+    h2 = 0x98BADCFE
+    h3 = 0x10325476
+    h4 = 0xC3D2E1F0
+
+    # Convert the message to bytes
+    message = bytearray(input.encode('utf-8'))
+
+    # add '1' to the message
+    message.append(0x80)
+
+    # Add 0s until length ≡ 448 and ensures the total bit length
+    while (len(message) * 8) % 512 != 448:
+        message.append(0x00)
+
+    # add 0s in the first of the original message until be 64 bits
+    originalBitLen = len(input) * 8
+    for i in range(7, -1, -1):
+        message.append((originalBitLen >> (i * 8)) & 0xFF)
+
+    # Process the message in successive 512-bit chunks
+    for chunk in range(0, len(message), 64):
+        w = [0] * 80
+
+        # Break chunk into 16 words each word 32 bit
+        for i in range(16):
+            base = chunk + i * 4
+            w[i] = (message[base + 0] << 24) \
+                 | (message[base + 1] << 16) \
+                 | (message[base + 2] << 8) \
+                 | message[base + 3]
+
+        # Extend the 16 words into 80 words
+        for i in range(16, 80):
+            w[i] = leftRotate(w[i-3] ^ w[i-8] ^ w[i-14] ^ w[i-16], 1)
+
+        # Initialize hash value for this chunk
+        a = h0
+        b = h1
+        c = h2
+        d = h3
+        e = h4
+
+        # Main loop and the four functions
+        for i in range(80):
+            if i < 20:
+                f = (b & c) | ((~b) & d)
+                k = 0x5A827999
+            elif i < 40:
+                f = b ^ c ^ d
+                k = 0x6ED9EBA1
+            elif i < 60:
+                f = (b & c) | (b & d) | (c & d)
+                k = 0x8F1BBCDC
+            else:
+                f = b ^ c ^ d
+                k = 0xCA62C1D6
+
+            # calculate the temp
+            temp = (leftRotate(a, 5) + f + e + k + w[i]) & 0xFFFFFFFF
+
+            e = d
+            d = c
+            c = leftRotate(b, 30)
+            b = a
+            a = temp
+
+        # a new hash value
+        h0 = (h0 + a) & 0xFFFFFFFF
+        h1 = (h1 + b) & 0xFFFFFFFF
+        h2 = (h2 + c) & 0xFFFFFFFF
+        h3 = (h3 + d) & 0xFFFFFFFF
+        h4 = (h4 + e) & 0xFFFFFFFF
+
+    # Converts the final 5 integers into a single 40-digit hex string
+    return f"{h0:08x}{h1:08x}{h2:08x}{h3:08x}{h4:08x}"
+
+# main
+if __name__ == "__main__":
+    input_str = input("Enter message: ")
+    hash_result = sha1(input_str)
+    print("SHA-1 encryption:", hash_result)
