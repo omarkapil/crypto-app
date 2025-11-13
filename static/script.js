@@ -12,7 +12,7 @@ window.openModal = function(method) {
     }
     
     currentMethod = method;
-    if (modalTitle) modalTitle.textContent = method + ' المعالجة باستخدام';
+    if (modalTitle) modalTitle.textContent = method + ' working ';
     if (inputText) inputText.value = '';
     if (outputText) outputText.value = '';
     if (statusMessage) {
