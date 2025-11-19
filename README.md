@@ -6,21 +6,22 @@ A web-based cryptographic application built with Flask that implements various e
 
 This application supports the following cryptographic methods:
 
-1. **Monoalphabetic Cipher** - Simple substitution cipher
-2. **Hill Cipher** - Polygraphic substitution cipher based on linear algebra
-3. **Columnar Transposition** - Transposition cipher using keyword-based column rearrangement
-4. **RC4** - Rivest Cipher 4 stream cipher
-5. **MAC** - Message Authentication Code using HMAC-SHA256
-6. **CBC** - Cipher Block Chaining mode (AES-CBC)
-7. **OFB** - Output Feedback mode (AES-OFB)
-8. **CTR** - Counter mode (AES-CTR)
+**Encryption / Decryption**
+1. **Monoalphabetic Cipher** – substitution cipher with deterministic LCG key
+2. **Columnar Transposition** – grid-based rearrangement using LCG keyword
+3. **Hill Cipher** – 2×2 matrix cipher implemented without external libraries
+4. **RC4** – lightweight stream cipher using LCG-derived key bytes
+5. **CBC (XOR-based)** – simple block cipher in CBC mode with deterministic IV
+6. **RSA** – classic public/private key encryption using small primes for learning
+
+**Hashing**
+- **MAC (HMAC-SHA256)**
+- **SHA-1**
 
 ## Requirements
 
-- Python 3.13+
-- Flask >= 3.0.0
-- pycryptodome >= 3.19.0
-- numpy >= 1.26.0
+- Python 3.10+
+- Flask >= 3.0.0 (see `requirements.txt`)
 
 ## Installation
 
@@ -47,39 +48,48 @@ python app.py
 http://localhost:5000
 ```
 
-3. Select a cryptographic method from the available options
-4. Enter your text in the input field
-5. Click "lets go" to encrypt/process your text
-6. View the result with the encrypted output and relevant keys/parameters
+3. Select **Encryption**, **Decryption**, or **Hashing**
+4. Choose the technique (Monoalphabetic, RSA, etc.)
+5. Enter your text, then click **Start** to run the operation
+6. Review the output + key/seed information
 
 ## Project Structure
 
 ```
-crypto-app/
-├── app.py                      # Main Flask application
-├── requirements.txt            # Python dependencies
-├── crypto_modules/             # Cryptographic algorithm modules
-│   ├── __init__.py
-│   ├── monoalphabetic_cipher.py
-│   ├── hill_cipher.py
-│   ├── columnar_transposition.py
-│   ├── rc4.py
-│   ├── mac.py
-│   ├── cbc.py
-│   ├── aes_ofb.py
-│   └── ctr.py
-├── static/                     # Static files
-│   ├── script.js              # Frontend JavaScript
-│   └── style.css              # Styling
-└── templates/                  # HTML templates
-    └── index.html             # Main page
+crypto-app-main/
+├── app.py                      # Flask routes + API
+├── requirements.txt            # Dependencies
+├── crypto_modules/             # Algorithms (encryption/decryption/hash)
+│   ├── utils.py                # LCG helpers and shared logic
+│   ├── monoalphabetic_encryption.py
+│   ├── monoalphabetic_decryption.py
+│   ├── columnar_encryption.py
+│   ├── columnar_decryption.py
+│   ├── hill_encryption.py
+│   ├── hill_decryption.py
+│   ├── rc4_encryption.py
+│   ├── rc4_decryption.py
+│   ├── cbc_encryption.py
+│   ├── cbc_decryption.py
+│   ├── rsa_encryption.py
+│   ├── rsa_decryption.py
+│   ├── mac_hashing.py
+│   └── sha1_hashing.py
+├── static/
+│   ├── script.js               # Frontend logic
+│   └── style.css               # Styling (clean, simple)
+└── templates/
+    ├── index.html
+    ├── encryption.html
+    ├── decryption.html
+    └── hashing.html
 ```
 
 ## Notes
 
-- Some algorithms (CBC, OFB, CTR) require the `pycryptodome` library
-- Hill Cipher requires `numpy` for matrix operations
-- Each algorithm generates its own keys/parameters automatically
-- Keys and initialization vectors (IVs) are displayed in base64 format for easy sharing
+- All algorithms now rely on Python's standard library only
+- Keys and IVs come from a deterministic Linear Congruential Generator (LCG) seed
+- Use the same seed (built-in default) for both encryption and decryption via the UI
+- Hashing techniques (MAC/SHA-1) are one-way, so decryption is not available
 
 

@@ -1,47 +1,43 @@
 # RC4 Encryption
-# ملف التشفير بتقنية RC4
-
 import base64
+from .utils import DEFAULT_SEED, generate_lcg_bytes
 
-def ksa(key_bytes):
-    S = list(range(256))
+
+def ksa(key: bytes) -> list[int]:
+    s = list(range(256))
     j = 0
     for i in range(256):
-        j = (j + S[i] + key_bytes[i % len(key_bytes)]) % 256
-        S[i], S[j] = S[j], S[i]
-    return S
+        j = (j + s[i] + key[i % len(key)]) % 256
+        s[i], s[j] = s[j], s[i]
+    return s
 
-def lcg_keystream(length, seed, a=1103515245, c=12345, m=256):
-    stream = bytearray()
-    x = seed
+
+def prga(state: list[int], length: int) -> bytes:
+    i = 0
+    j = 0
+    output = bytearray()
     for _ in range(length):
-        x = (a * x + c) % m
-        stream.append(x)
-    return bytes(stream)
+        i = (i + 1) % 256
+        j = (j + state[i]) % 256
+        state[i], state[j] = state[j], state[i]
+        k = state[(state[i] + state[j]) % 256]
+        output.append(k)
+    return bytes(output)
 
-def xor_cipher(data_bytes, keystream):
-    return bytes(b ^ k for b, k in zip(data_bytes, keystream))
 
-def rc4_lcg_encrypt(plaintext, key):
-    key_bytes = [ord(c) for c in key]
-    S = ksa(key_bytes)
-    seed = sum(S) % 256
-    keystream = lcg_keystream(len(plaintext), seed)
-    ciphertext_bytes = xor_cipher(plaintext, keystream)
-    return base64.b64encode(ciphertext_bytes).decode('ascii')
+def rc4_encrypt(data: bytes, key: bytes) -> bytes:
+    state = ksa(key)
+    keystream = prga(state, len(data))
+    return bytes(b ^ k for b, k in zip(data, keystream))
 
-def process_text(text: str, key: str = "defaultkey") -> str:
-    """
-    Process text using RC4 Encryption.
-    """
+
+def process_text(text: str) -> str:
     if not text:
         return "ERROR: Input text is empty."
-    
-    try:
-        data_bytes = text.encode('utf-8')
-        ciphertext_b64 = rc4_lcg_encrypt(data_bytes, key)
-        result = f"Ciphertext (Base64): {ciphertext_b64}\n\nKey: {key}"
-        return result
-    except Exception as e:
-        return f"ERROR: Encryption failed: {str(e)}"
+
+    key = generate_lcg_bytes(DEFAULT_SEED, 16)
+    cipher_bytes = rc4_encrypt(text.encode("utf-8"), key)
+    cipher_b64 = base64.b64encode(cipher_bytes).decode("utf-8")
+    key_hex = key.hex()
+    return f"Ciphertext (Base64): {cipher_b64}\nKey (hex): {key_hex}\nSeed: {DEFAULT_SEED}"
 

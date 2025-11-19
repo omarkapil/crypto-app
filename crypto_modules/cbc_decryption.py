@@ -1,40 +1,52 @@
-# CBC Decryption
-# ملف فك التشفير بتقنية CBC
+# CBC Decryption (matching the simple XOR-based encryption)
+from .utils import DEFAULT_SEED, generate_lcg_bytes
+from .cbc_encryption import BLOCK_SIZE, xor_bytes
 
-def simple_block_decrypt(block, key):
-    return bytes([b ^ k for b, k in zip(block, key)])
 
-def cbc_decrypt(ciphertext, key, iv):
-    block_size = len(key)
-    plaintext = b''
-    prev_block = iv
+def unpad(data: bytes) -> bytes:
+    if not data:
+        return b""
+    pad_len = data[-1]
+    if pad_len < 1 or pad_len > BLOCK_SIZE:
+        return data
+    return data[:-pad_len]
 
-    for i in range(0, len(ciphertext), block_size):
-        cipher_block = ciphertext[i:i+block_size]
-        decrypted_block = simple_block_decrypt(cipher_block, key)
-        plain_block = bytes([b ^ pb for b, pb in zip(decrypted_block, prev_block)])
-        plaintext += plain_block
-        prev_block = cipher_block
 
-    padding_len = plaintext[-1]
-    return plaintext[:-padding_len]
+def decrypt_blocks(data: bytes, key: bytes, iv: bytes) -> bytes:
+    plaintext = bytearray()
+    previous = iv
+    for i in range(0, len(data), BLOCK_SIZE):
+        block = data[i:i + BLOCK_SIZE]
+        mixed = xor_bytes(block, key)
+        plain_block = xor_bytes(mixed, previous)
+        plaintext.extend(plain_block)
+        previous = block
+    return bytes(plaintext)
 
-def process_text(text: str, iv_hex: str = "", key: bytes = b'12345678') -> str:
-    """
-    Process text using CBC Decryption.
-    """
+
+def process_text(text: str) -> str:
     if not text:
-        return "ERROR: Input text is empty."
-    
-    if not iv_hex:
-        return "ERROR: IV is required for decryption."
-    
+        return "ERROR: Input text is required (hex)."
+
     try:
-        iv = bytes.fromhex(iv_hex)
-        ciphertext = bytes.fromhex(text)
-        decrypted = cbc_decrypt(ciphertext, key, iv)
-        result = f"Plaintext: {decrypted.decode()}\n\nIV (hex): {iv_hex}\nKey: {key.decode()}"
-        return result
-    except Exception as e:
-        return f"ERROR: Decryption failed: {str(e)}"
+        cipher = bytes.fromhex(text.strip())
+    except ValueError:
+        return "ERROR: Ciphertext must be hex encoded."
+
+    key = generate_lcg_bytes(DEFAULT_SEED, BLOCK_SIZE)
+    iv = generate_lcg_bytes(DEFAULT_SEED + 1, BLOCK_SIZE)
+    plain_padded = decrypt_blocks(cipher, key, iv)
+    plain = unpad(plain_padded)
+
+    try:
+        decoded = plain.decode("utf-8")
+    except UnicodeDecodeError:
+        decoded = plain.decode("latin-1")
+
+    return (
+        f"Plaintext: {decoded}\n"
+        f"Key (hex): {key.hex()}\n"
+        f"IV (hex): {iv.hex()}\n"
+        f"Seed: {DEFAULT_SEED}"
+    )
 

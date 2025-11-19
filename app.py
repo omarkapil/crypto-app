@@ -3,16 +3,16 @@ from flask import Flask, render_template, request, jsonify
 # استيراد ملفات التشفير من crypto_modules
 import crypto_modules.monoalphabetic_encryption as mono_enc
 import crypto_modules.monoalphabetic_decryption as mono_dec
-import crypto_modules.hill_encryption as hill_enc
 import crypto_modules.columnar_encryption as columnar_enc
+import crypto_modules.columnar_decryption as columnar_dec
+import crypto_modules.hill_encryption as hill_enc
+import crypto_modules.hill_decryption as hill_dec
 import crypto_modules.rc4_encryption as rc4_enc
 import crypto_modules.rc4_decryption as rc4_dec
 import crypto_modules.cbc_encryption as cbc_enc
 import crypto_modules.cbc_decryption as cbc_dec
-import crypto_modules.ofb_encryption as ofb_enc
-import crypto_modules.ofb_decryption as ofb_dec
-import crypto_modules.ctr_encryption as ctr_enc
-import crypto_modules.ctr_decryption as ctr_dec
+import crypto_modules.rsa_encryption as rsa_enc
+import crypto_modules.rsa_decryption as rsa_dec
 import crypto_modules.mac_hashing as mac_hash
 import crypto_modules.sha1_hashing as sha1_hash
 
@@ -21,21 +21,21 @@ app = Flask(__name__)
 # قائمة تقنيات التشفير
 ENCRYPTION_METHODS = {
     "Monoalphabetic": mono_enc.process_text,
-    "Hill Cipher": hill_enc.process_text,
     "Columnar Transposition": columnar_enc.process_text,
+    "Hill Cipher": hill_enc.process_text,
     "RC4": rc4_enc.process_text,
     "CBC": cbc_enc.process_text,
-    "OFB": ofb_enc.process_text,
-    "CTR": ctr_enc.process_text
+    "RSA": rsa_enc.process_text,
 }
 
 # قائمة تقنيات فك التشفير
 DECRYPTION_METHODS = {
     "Monoalphabetic": mono_dec.process_text,
+    "Columnar Transposition": columnar_dec.process_text,
+    "Hill Cipher": hill_dec.process_text,
     "RC4": rc4_dec.process_text,
     "CBC": cbc_dec.process_text,
-    "OFB": ofb_dec.process_text,
-    "CTR": ctr_dec.process_text
+    "RSA": rsa_dec.process_text,
 }
 
 # قائمة تقنيات الهاشينج

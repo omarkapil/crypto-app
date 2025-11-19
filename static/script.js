@@ -42,7 +42,7 @@ window.openModal = function(method, operation) {
 
 window.closeModal = function() {
     if (!modal || !modalContent) return;
-    modal.style.display = 'none';
+        modal.style.display = 'none';
 };
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
     modalContent = document.querySelector('.modal-content');
     
     if (processBtn) {
-        initializeFeatures();
+    initializeFeatures();
     }
 });
 
@@ -63,11 +63,11 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeFeatures() {
     // Set up process button click handler
     if (processBtn) {
-        processBtn.addEventListener('click', function(e) {
-            if (!this.disabled) {
-                handleProcess();
-            }
-        });
+    processBtn.addEventListener('click', function(e) {
+        if (!this.disabled) {
+            handleProcess();
+        }
+    });
     }
     
     // Add keyboard navigation for textareas

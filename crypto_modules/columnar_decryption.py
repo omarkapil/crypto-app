@@ -12,23 +12,27 @@ def sanitize(text: str) -> str:
     return "".join(ch.upper() for ch in text if ch.isalpha())
 
 
-def encrypt(text: str, key: str) -> str:
-    clean = sanitize(text)
+def decrypt(cipher: str, key: str) -> str:
+    clean = sanitize(cipher)
     if not clean:
         return ""
 
     cols = len(key)
     rows = ceil(len(clean) / cols)
-    padded = clean.ljust(rows * cols, "X")
+    total = rows * cols
+    padded = clean.ljust(total, "X")
 
-    matrix = [list(padded[r * cols:(r + 1) * cols]) for r in range(rows)]
     order = sorted(range(cols), key=lambda idx: key[idx])
+    matrix = [[""] * cols for _ in range(rows)]
 
-    cipher_chars: list[str] = []
+    idx = 0
     for col in order:
         for row in range(rows):
-            cipher_chars.append(matrix[row][col])
-    return "".join(cipher_chars)
+            matrix[row][col] = padded[idx]
+            idx += 1
+
+    plaintext = "".join("".join(row) for row in matrix)
+    return plaintext.rstrip("X")
 
 
 def process_text(text: str) -> str:
@@ -36,5 +40,6 @@ def process_text(text: str) -> str:
         return "ERROR: Input text is empty."
 
     key = build_key(DEFAULT_SEED)
-    cipher = encrypt(text, key)
-    return f"Ciphertext: {cipher}\nKey: {key}\nSeed: {DEFAULT_SEED}"
+    plain = decrypt(text, key)
+    return f"Plaintext: {plain}\nKey: {key}\nSeed: {DEFAULT_SEED}"
+
